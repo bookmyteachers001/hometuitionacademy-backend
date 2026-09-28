@@ -5,11 +5,17 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { authoriseAdmin } = require('../middleware/authoriseUser');
 const adminController = require('../controllers/admin');
+const siteController = require('../controllers/site');
 const  { pageController , projectController } = require('../controllers/page');
 
 router.use(authenticateToken);
 router.use(authoriseAdmin);
 
+
+// websites that share this admin panel
+router.get('/site', siteController.listSites);
+router.post('/site', siteController.createSite);
+router.put('/site/:id', siteController.updateSite);
 
 router.get('/user',adminController.getAllUsers);
 router.put('/user/:id',adminController.updateUser);
