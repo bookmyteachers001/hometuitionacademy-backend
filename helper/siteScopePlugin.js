@@ -1,40 +1,40 @@
-// Runs once on every boot (safe to repeat):
-//  1. makes sure the default site exists in the Sites list
-//  2. tags all pre-multi-site documents with the default site
-//  3. rebuilds indexes so slug / url / email are unique PER SITE
-const Site = require('../models/Site');
-const { DEFAULT_SITE } = require('./siteContext');
+const { getSite, DEFAULT_SITE } = require('./siteContext');
 
-const scopedModels = [
-  'Blog', 'Service', 'Category', 'SubCategory', 'ChildCategory',
-  'Query', 'NewsLetter', 'Page', 'Project',
-].map((name) => require(`../models/${name}`));
+function siteScopePlugin(schema) {
+  // Add site field to the schema
+  schema.add({
+    site: {
+      type: String,
+      default: DEFAULT_SITE,
+      index: true,
+    },
+  });
 
-async function migrateMultiSite() {
-  const exists = await Site.findOne({ key: DEFAULT_SITE });
-  if (!exists) {
-    await Site.create({
-      key: DEFAULT_SITE,
-      name: process.env.DEFAULT_SITE_NAME || 'Home Tuition Academy',
-    });
-    console.log(`[multi-site] created default site "${DEFAULT_SITE}"`);
-  }
+  // Automatically add the current site to queries
+  const addSiteToQuery = function (next) {
+    const site = getSite() || DEFAULT_SITE;
 
-  for (const Model of scopedModels) {
-    const res = await Model.updateMany(
-      { site: { $exists: false } },
-      { $set: { site: DEFAULT_SITE } }
-    );
-    if (res.modifiedCount) {
-      console.log(`[multi-site] ${Model.modelName}: tagged ${res.modifiedCount} old docs as "${DEFAULT_SITE}"`);
+    if (!this.getQuery().site) {
+      this.where({ site });
     }
-    try {
-      await Model.syncIndexes();
-    } catch (err) {
-      console.error(`[multi-site] ${Model.modelName}: index sync failed:`, err.message);
+
+    next();
+  };
+
+  schema.pre('find', addSiteToQuery);
+  schema.pre('findOne', addSiteToQuery);
+  schema.pre('findOneAndUpdate', addSiteToQuery);
+  schema.pre('countDocuments', addSiteToQuery);
+  schema.pre('exists', addSiteToQuery);
+
+  // Automatically set site when creating a document
+  schema.pre('save', function (next) {
+    if (!this.site) {
+      this.site = getSite() || DEFAULT_SITE;
     }
-  }
-  console.log('[multi-site] ready');
+
+    next();
+  });
 }
 
-module.exports = migrateMultiSite;
+module.exports = siteScopePlugin;
