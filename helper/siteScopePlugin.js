@@ -1,7 +1,7 @@
 const { getSite, DEFAULT_SITE } = require('./siteContext');
 
 function siteScopePlugin(schema) {
-  // Add site field to the schema
+
   schema.add({
     site: {
       type: String,
@@ -10,7 +10,6 @@ function siteScopePlugin(schema) {
     },
   });
 
-  // Automatically add the current site to queries
   const addSiteToQuery = function (next) {
     const site = getSite() || DEFAULT_SITE;
 
@@ -27,7 +26,6 @@ function siteScopePlugin(schema) {
   schema.pre('countDocuments', addSiteToQuery);
   schema.pre('exists', addSiteToQuery);
 
-  // Automatically set site when creating a document
   schema.pre('save', function (next) {
     if (!this.site) {
       this.site = getSite() || DEFAULT_SITE;
