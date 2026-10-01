@@ -1,4 +1,5 @@
 const Site = require('../models/Site');
+const { DEFAULT_SITE } = require('../helper/siteContext');
 
 async function listSites(req, res) {
   try {
@@ -43,4 +44,24 @@ async function updateSite(req, res) {
   }
 }
 
-module.exports = { listSites, createSite, updateSite };
+// Removes the website from the switcher only. Its blogs/services/leads/etc.
+// are NOT deleted — they stay in the database tagged with that site's key,
+// so nothing is lost if the website is re-added later with the same key.
+async function deleteSite(req, res) {
+  try {
+    const site = await Site.findById(req.params.id);
+    if (!site) return res.status(404).json({ message: 'Site not found' });
+
+    if (site.key === DEFAULT_SITE) {
+      return res.status(400).json({ message: 'The default website cannot be deleted.' });
+    }
+
+    await Site.findByIdAndDelete(req.params.id);
+    return res.status(200).json({ message: 'Site deleted successfully' });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: error.message, message: 'Error in server' });
+  }
+}
+
+module.exports = { listSites, createSite, updateSite, deleteSite };
