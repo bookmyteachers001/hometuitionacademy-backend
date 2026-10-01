@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 
@@ -16,6 +15,7 @@ router.use(authoriseAdmin);
 router.get('/site', siteController.listSites);
 router.post('/site', siteController.createSite);
 router.put('/site/:id', siteController.updateSite);
+router.delete('/site/:id', siteController.deleteSite);
 
 router.get('/user',adminController.getAllUsers);
 router.put('/user/:id',adminController.updateUser);
